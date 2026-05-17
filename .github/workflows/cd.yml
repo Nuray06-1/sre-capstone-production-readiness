@@ -5,14 +5,52 @@ on:
     branches:
       - main
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: nuray06-1/sre-capstone-production-readiness
+  K8S_NAMESPACE: sre-capstone
+  DEPLOYMENT_NAME: fastapi-app
+  CONTAINER_NAME: fastapi-app
+
 jobs:
-  deploy:
-    name: Deploy via SSH
+  build-and-deploy:
+    name: Build image and deploy to Kubernetes
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate image tag
+        id: image
+        run: |
+          IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          TAG=${{ github.sha }}
+
+          echo "image=$IMAGE" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "full_image=$IMAGE:$TAG" >> $GITHUB_OUTPUT
+
+      - name: Build and push FastAPI image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ steps.image.outputs.full_image }}
+            ${{ steps.image.outputs.image }}:latest
 
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.0.3
@@ -30,13 +68,23 @@ jobs:
             echo "Pulling latest code..."
             git pull origin main
 
-            echo "Rebuilding FastAPI image..."
-            docker compose build app
+            echo "Applying Kubernetes manifests..."
+            kubectl apply -f k8s/
 
-            echo "Restarting containers..."
-            docker compose up -d
+            echo "Updating FastAPI image..."
+            kubectl set image deployment/${{ env.DEPLOYMENT_NAME }} \
+              ${{ env.CONTAINER_NAME }}=${{ steps.image.outputs.full_image }} \
+              -n ${{ env.K8S_NAMESPACE }}
 
-            echo "Removing unused images..."
-            docker image prune -f
+            echo "Waiting for rollout..."
+            kubectl rollout status deployment/${{ env.DEPLOYMENT_NAME }} \
+              -n ${{ env.K8S_NAMESPACE }} \
+              --timeout=120s
+
+            echo "Current pods:"
+            kubectl get pods -n ${{ env.K8S_NAMESPACE }}
+
+            echo "Current HPA:"
+            kubectl get hpa -n ${{ env.K8S_NAMESPACE }}
 
             echo "Deployment finished successfully."
