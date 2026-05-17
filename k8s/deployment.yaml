@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: fastapi-app
-          image: ghcr.io/Nuray06-1/sre-capstone-production-readiness:latest
+          image: ghcr.io/nuray06-1/sre-capstone-production-readiness:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
