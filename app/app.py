@@ -4,7 +4,7 @@ from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_
 import time
 import math
 
-app = FastAPI(title="E-commerce API for SRE Autoscaling Demo Demo Demo")
+app = FastAPI(title="E-commerce API for SRE Autoscaling Demo Demo")
 
 PRODUCTS = [
     {"id": 1, "name": "Laptop", "price": 750000},
