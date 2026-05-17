@@ -1,0 +1,29 @@
+groups:
+  - name: ecommerce-api-alerts
+    rules:
+      - alert: HighP95RequestLatency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (
+              rate(http_request_duration_seconds_bucket[1m])
+            )
+          ) > 0.5
+        for: 30s
+        labels:
+          severity: warning
+          service: ecommerce-api
+        annotations:
+          summary: "High P95 request latency detected"
+          description: "The 95th percentile latency is above 0.5 seconds for more than 30 seconds."
+
+      - alert: HighApplicationCPUUsage
+        expr: |
+          rate(process_cpu_seconds_total[1m]) > 0.25
+        for: 30s
+        labels:
+          severity: warning
+          service: ecommerce-api
+        annotations:
+          summary: "High application CPU usage detected"
+          description: "Application CPU consumption has stayed above 0.25 cores for more than 30 seconds."
