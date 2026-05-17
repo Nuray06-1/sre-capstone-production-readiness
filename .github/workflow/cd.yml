@@ -1,0 +1,42 @@
+name: Deploy to production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy via SSH
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          script: |
+            set -e
+
+            echo "Going to project directory..."
+            cd ~/sre-capstone-production-readiness
+
+            echo "Pulling latest code..."
+            git pull origin main
+
+            echo "Rebuilding FastAPI image..."
+            docker compose build app
+
+            echo "Restarting containers..."
+            docker compose up -d
+
+            echo "Removing unused images..."
+            docker image prune -f
+
+            echo "Deployment finished successfully."
