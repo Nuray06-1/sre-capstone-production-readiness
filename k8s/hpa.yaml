@@ -1,18 +1,19 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: ecommerce-api-hpa
+  name: fastapi-app-hpa
+  namespace: sre-capstone
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: ecommerce-api
+    name: fastapi-app
   minReplicas: 1
-  maxReplicas: 5
+  maxReplicas: 3
   metrics:
     - type: Resource
       resource:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: 80
+          averageUtilization: 60

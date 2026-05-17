@@ -1,23 +1,27 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ecommerce-api
-  labels:
-    app: ecommerce-api
+  name: fastapi-app
+  namespace: sre-capstone
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ecommerce-api
+      app: fastapi-app
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   template:
     metadata:
       labels:
-        app: ecommerce-api
+        app: fastapi-app
     spec:
       containers:
-        - name: ecommerce-api
-          image: ecommerce-api:latest
-          imagePullPolicy: Never
+        - name: fastapi-app
+          image: ghcr.io/Nuray06-1/sre-capstone-production-readiness:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8000
           resources:
@@ -29,13 +33,13 @@ spec:
               memory: "256Mi"
           readinessProbe:
             httpGet:
-              path: /health
+              path: /ready
               port: 8000
             initialDelaySeconds: 5
-            periodSeconds: 5
+            periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /health
               port: 8000
-            initialDelaySeconds: 10
-            periodSeconds: 10
+            initialDelaySeconds: 15
+            periodSeconds: 20
